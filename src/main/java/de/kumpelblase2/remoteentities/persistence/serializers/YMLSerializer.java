@@ -53,13 +53,10 @@ public class YMLSerializer extends PreparationSerializer implements ISingleEntit
         {
             if(!this.loadConfig())
                 return new EntityData[0];
-        } else if (!this.m_config.isList("entities")) {
-            this.m_config.set("entities", new EntityData[0]);
-            try {
-                this.m_config.save(this.m_configFile);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        }
+
+        if (!this.m_config.contains("entities") || !this.m_config.isList("entities")) {
+            this.m_config.set("entities", new ArrayList<EntityData>());
         }
 
         return this.m_config.getList("entities").toArray(new EntityData[0]);
