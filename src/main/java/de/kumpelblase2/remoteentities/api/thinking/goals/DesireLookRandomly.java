@@ -4,12 +4,14 @@ import net.minecraft.server.v1_5_R2.EntityLiving;
 import de.kumpelblase2.remoteentities.api.RemoteEntity;
 import de.kumpelblase2.remoteentities.api.thinking.DesireBase;
 import de.kumpelblase2.remoteentities.api.thinking.DesireType;
+import org.bukkit.Bukkit;
 
 public class DesireLookRandomly extends DesireBase
 {
 	protected double m_xDiff;
 	protected double m_zDiff;
 	protected int m_lookTick;
+    protected boolean shouldLook = false;
 	
 	public DesireLookRandomly(RemoteEntity inEntity)
 	{
@@ -40,11 +42,21 @@ public class DesireLookRandomly extends DesireBase
 		this.m_xDiff = Math.cos(d);
 		this.m_zDiff = Math.sin(d);
 		this.m_lookTick = 20 + this.getEntityHandle().aE().nextInt(20);
+        this.shouldLook = true;
 	}
+
+    @Override
+    public void stopExecuting()
+    {
+        this.shouldLook = false;
+    }
 	
 	@Override
 	public boolean update()
 	{
+        if (!this.shouldLook)
+            return false;
+
 		this.m_lookTick--;
 		EntityLiving entity = this.getEntityHandle();
 		entity.getControllerLook().a(entity.locX + this.m_xDiff, entity.locY + entity.getHeadHeight(), entity.locZ + this.m_zDiff, 10, entity.bs());

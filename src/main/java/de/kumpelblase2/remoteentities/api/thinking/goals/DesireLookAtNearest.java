@@ -9,6 +9,7 @@ import de.kumpelblase2.remoteentities.persistence.SerializeAs;
 import de.kumpelblase2.remoteentities.utilities.NMSClassMap;
 import de.kumpelblase2.remoteentities.utilities.ReflectionUtil;
 import net.minecraft.server.v1_5_R2.*;
+import org.bukkit.Bukkit;
 
 public class DesireLookAtNearest extends DesireBase
 {
@@ -56,7 +57,11 @@ public class DesireLookAtNearest extends DesireBase
 	@Override
 	public boolean update()
 	{
-		this.getEntityHandle().getControllerLook().a(this.m_target.locX, this.m_target.locY + this.m_target.getHeadHeight(), this.m_target.locZ, 10, this.getEntityHandle().bs());
+        if (this.m_lookPossibility == 0F)
+            return false;
+
+        this.getEntityHandle().getControllerLook().a(this.m_target.locX, this.m_target.locY + this.m_target.getHeadHeight(), this.m_target.locZ, 10, this.getEntityHandle().bs());
+
 		this.m_lookTicks--;
 		return true;
 	}
@@ -102,4 +107,8 @@ public class DesireLookAtNearest extends DesireBase
 		List<ParameterData> thisData = ReflectionUtil.getParameterDataForClass(this);
 		return thisData.toArray(new ParameterData[0]);
 	}
+
+    public void setLookPossibility(float possibility) {
+        this.m_lookPossibility = possibility;
+    }
 }
