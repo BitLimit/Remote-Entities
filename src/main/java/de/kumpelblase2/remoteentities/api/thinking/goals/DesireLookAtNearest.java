@@ -84,6 +84,9 @@ public class DesireLookAtNearest extends DesireBase
 	@Override
 	public boolean canContinue()
 	{
+        if (this.m_target == null)
+            return false;
+
 		if(!this.m_target.isAlive())
 			return false;
 		
