@@ -111,9 +111,12 @@ public class DesireData implements ConfigurationSerializable
                 Class c = Class.forName(this.parameters[i].type);
 
 //				Class c = ClassUtils.getClass(this.getClass().getClassLoader(), this.parameters[i].type);
-//				if(ClassUtils.wrapperToPrimitive(c) != null)
-//					c = ClassUtils.wrapperToPrimitive(c);
-				
+				if (c.getCanonicalName().equalsIgnoreCase("java.lang.Float")) {
+                    c = float.class;
+                } else if (c.getCanonicalName().equalsIgnoreCase("java.lang.Integer")) {
+                    c = int.class;
+                }
+
 				classes[i] = c;
 			}
 			catch(Exception e)

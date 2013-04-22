@@ -19,6 +19,15 @@ public class ParameterData implements ConfigurationSerializable
 	{
 		this.pos = inPos;
 		this.type = inType;
+
+        if (inType.equalsIgnoreCase("float")) {
+            this.type = Float.class.getCanonicalName();
+        } else if (inType.equalsIgnoreCase("integer")) {
+            this.type = Integer.class.getCanonicalName();
+        } else {
+            this.type = inType;
+        }
+
 		this.value = inValue;
 		this.special = "";
 	}

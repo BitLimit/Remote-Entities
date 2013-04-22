@@ -98,6 +98,7 @@ public class BehaviorData implements ConfigurationSerializable
 			try
 			{
                 Class c = Class.forName(this.parameters[i].type);
+
 //				if(ClassUtils.wrapperToPrimitive(c) != null)
 //					c = ClassUtils.wrapperToPrimitive(c);
 				
