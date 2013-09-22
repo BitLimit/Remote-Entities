@@ -1,57 +1,58 @@
 package de.kumpelblase2.remoteentities.api.thinking;
 
-import java.util.ArrayList;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import org.bukkit.Bukkit;
-import de.kumpelblase2.remoteentities.api.events.RemoteDesireAddEvent;
-import de.kumpelblase2.remoteentities.api.events.RemoteDesireStartEvent;
-import de.kumpelblase2.remoteentities.api.events.RemoteDesireStopEvent;
+import de.kumpelblase2.remoteentities.api.RemoteEntity;
+import de.kumpelblase2.remoteentities.api.events.*;
 
 public class DesireSelector
 {
-	private List<DesireItem> m_desires;
-	private List<DesireItem> m_executingDesires;
+	private final List<DesireItem> m_desires;
+	private final List<DesireItem> m_executingDesires;
 	private int m_delay = 0;
-	
-	public DesireSelector()
+	private final RemoteEntity m_entity;
+
+	public DesireSelector(RemoteEntity inEntity)
 	{
+		this.m_entity = inEntity;
 		this.m_desires = new ArrayList<DesireItem>();
 		this.m_executingDesires = new ArrayList<DesireItem>();
 	}
-	
+
 	public void onUpdate()
 	{
+		Set<DesireItem> toRemove = new HashSet<DesireItem>();
+
 		if(++this.m_delay % 3 == 0)
 		{
 			Iterator<DesireItem> it = this.m_desires.iterator();
 			while(it.hasNext())
 			{
-				DesireItem item = it.next();				
+				DesireItem item = it.next();
 				if(this.m_executingDesires.contains(item))
 				{
 					if(this.hasHighestPriority(item) && item.getDesire().canContinue())
 						continue;
-					
+
 					RemoteDesireStopEvent event = new RemoteDesireStopEvent(item.getDesire().getRemoteEntity(), item);
 					Bukkit.getPluginManager().callEvent(event);
 					if(event.isCancelled())
 						continue;
-						
+
 					event.getDesire().stopExecuting();
 					if(event.getDesire() instanceof OneTimeDesire && ((OneTimeDesire)event.getDesire()).isFinished())
-						this.m_desires.remove(event.getDesireItem());
-					
+						toRemove.add(event.getDesireItem());
+
 					this.m_executingDesires.remove(event.getDesireItem());
 				}
-							 
-				if(this.hasHighestPriority(item) && item.getDesire().shouldExecute())
+
+				if(!toRemove.contains(item) && this.hasHighestPriority(item) && item.getDesire().shouldExecute())
 				{
 					RemoteDesireStartEvent event = new RemoteDesireStartEvent(item.getDesire().getRemoteEntity(), item);
 					Bukkit.getPluginManager().callEvent(event);
 					if(event.isCancelled())
 						continue;
-					
+
 					event.getDesire().startExecuting();
 					this.m_executingDesires.add(event.getDesireItem());
 				}
@@ -71,12 +72,17 @@ public class DesireSelector
 					item.getDesire().stopExecuting();
 					if(item.getDesire() instanceof OneTimeDesire && ((OneTimeDesire)item.getDesire()).isFinished())
 						this.m_desires.remove(item);
-					
+
 					it.remove();
 				}
 			}
 		}
-		
+
+		for(DesireItem remove : toRemove)
+		{
+			this.m_desires.remove(remove);
+		}
+
 		Iterator<DesireItem> it = this.m_executingDesires.iterator();
 		while(it.hasNext())
 		{
@@ -87,62 +93,63 @@ public class DesireSelector
 				Bukkit.getPluginManager().callEvent(event);
 				if(item.getDesire() instanceof OneTimeDesire && ((OneTimeDesire)item.getDesire()).isFinished())
 					this.m_desires.remove(item);
-				
+
 				it.remove();
 			}
 		}
 	}
-	 
+
 	public void addDesire(Desire inDesire, int inPriority)
 	{
-		RemoteDesireAddEvent event = new RemoteDesireAddEvent(inDesire.getRemoteEntity(), inDesire, inPriority);
+		RemoteDesireAddEvent event = new RemoteDesireAddEvent(this.m_entity, inDesire, inPriority);
 		Bukkit.getPluginManager().callEvent(event);
 		if(event.isCancelled())
 			return;
-		
+
+		inDesire.onAdd(this.m_entity);
 		this.m_desires.add(new DesireItem(event.getDesire(), event.getPriority()));
 	}
-	 
+
 	public boolean hasHighestPriority(DesireItem inItem)
 	{
 		for(DesireItem item : this.m_desires)
 		{
 			if(item.equals(inItem))
 				continue;
-			
+
 			if(inItem.getPriority() >= item.getPriority())
 			{
 				if(!areTasksCompatible(item.getDesire(), inItem.getDesire()) && this.m_executingDesires.contains(item))
-					return false; 
+					return false;
 			}
-			else if(!item.getDesire().isContinuous() && this.m_executingDesires.contains(item))			 
+			else if(!item.getDesire().isContinuous() && this.m_executingDesires.contains(item))
 				return false;
-		} 
+		}
 		return true;
 	}
-	 
+
 	public static boolean areTasksCompatible(Desire inFirstDesire, Desire inSecondDesire)
 	{
 		return inFirstDesire.getType().isCompatibleWith(inSecondDesire.getType());
 	}
-	
+
 	public List<DesireItem> getDesires()
 	{
 		return this.m_desires;
 	}
-	
+
 	public boolean removeDesireByType(Class<? extends Desire> inType)
-	{		
+	{
 		List<DesireItem> temp = new ArrayList<DesireItem>();
 		for(DesireItem item : this.m_desires)
 		{
 			if(item.getDesire().getClass().equals(inType) || item.getDesire().getClass().getSuperclass().equals(inType))
 				temp.add(item);
 		}
-		
+
 		if(temp.size() == 0)
 			return false;
-		
+
 		if(temp.size() > 1)
 		{
 			DesireItem lowest = temp.get(0);
@@ -172,7 +179,7 @@ public class DesireSelector
 		this.m_executingDesires.remove(temp.get(0));
 		return true;
 	}
-	
+
 	public void clearDesires()
 	{
 		for(DesireItem item : this.m_executingDesires)
@@ -184,7 +191,7 @@ public class DesireSelector
 		this.m_desires.clear();
 		this.m_executingDesires.clear();
 	}
-	
+
 	public int getHighestPriority()
 	{
 		int highest = 0;
@@ -193,10 +200,10 @@ public class DesireSelector
 			if(item.getPriority() > highest)
 				highest = item.getPriority();
 		}
-		
+
 		return highest;
 	}
-	
+
 	protected boolean hasLowestPriority(DesireItem inItem)
 	{
 		int lowest = inItem.getPriority();

@@ -1,29 +1,47 @@
 package de.kumpelblase2.remoteentities.api.thinking.goals;
 
+import net.minecraft.server.v1_6_R3.*;
 import org.bukkit.entity.LivingEntity;
-import net.minecraft.server.v1_5_R2.EntityVillager;
-import net.minecraft.server.v1_5_R2.MathHelper;
-import net.minecraft.server.v1_5_R2.Village;
 import de.kumpelblase2.remoteentities.api.RemoteEntity;
 import de.kumpelblase2.remoteentities.api.thinking.DesireBase;
 import de.kumpelblase2.remoteentities.api.thinking.DesireType;
 import de.kumpelblase2.remoteentities.exceptions.NotAVillagerException;
 
+/**
+ * Using this desire the villager will move into the next village and in an empty house to give birth to a new child with another villager.
+ */
 public class DesireMakeLove extends DesireBase
 {
 	protected EntityVillager m_villager;
 	protected EntityVillager m_partner;
 	protected Village m_nearestVillage;
 	protected int m_loveTick;
-	
-	public DesireMakeLove(RemoteEntity inEntity) throws Exception
+
+	@Deprecated
+	public DesireMakeLove(RemoteEntity inEntity)
 	{
 		super(inEntity);
 		if(!(this.getEntityHandle() instanceof EntityVillager))
 			throw new NotAVillagerException();
-		
+
 		this.m_villager = (EntityVillager)this.getEntityHandle();
 		this.m_type = DesireType.FULL_CONCENTRATION;
+	}
+
+	public DesireMakeLove()
+	{
+		super();
+		this.m_type = DesireType.FULL_CONCENTRATION;
+	}
+
+	@Override
+	public void onAdd(RemoteEntity inEntity)
+	{
+		super.onAdd(inEntity);
+		if(!(this.getEntityHandle() instanceof EntityVillager))
+			throw new NotAVillagerException();
+
+		this.m_villager = (EntityVillager)this.getEntityHandle();
 	}
 
 	@Override
@@ -31,10 +49,10 @@ public class DesireMakeLove extends DesireBase
 	{
 		if(this.getEntityHandle() == null)
 			return false;
-		
+
 		if(this.m_villager.getAge() != 0)
 			return false;
-		else if(this.m_villager.aE().nextInt(500) != 0)
+		else if(this.m_villager.aD().nextInt(500) != 0)
 			return false;
 		else
 		{
@@ -45,39 +63,39 @@ public class DesireMakeLove extends DesireBase
 				return false;
 			else
 			{
-				EntityVillager partner = (EntityVillager)this.m_villager.world.a(EntityVillager.class, this.m_villager.boundingBox.grow(8, 3, 8));
+				Entity partner = this.m_villager.world.a(EntityVillager.class, this.m_villager.boundingBox.grow(8, 3, 8), this.m_villager);
 				if(partner == null)
 					return false;
 				else
 				{
-					this.m_partner = partner;
+					this.m_partner = (EntityVillager)partner;
 					return this.m_partner.getAge() == 0;
 				}
 			}
 		}
 	}
-	
+
 	@Override
 	public void startExecuting()
 	{
 		this.m_loveTick = 300;
-		this.m_villager.i(true);
+		this.m_villager.j(true);
 	}
-	
+
 	@Override
 	public void stopExecuting()
 	{
 		this.m_nearestVillage = null;
 		this.m_partner = null;
-		this.m_villager.i(false);
+		this.m_villager.j(false);
 	}
-	
+
 	@Override
 	public boolean canContinue()
 	{
 		return this.m_loveTick >= 0 && this.hasEnoughSpace() && this.m_villager.getAge() == 0;
 	}
-	
+
 	@Override
 	public boolean update()
 	{
@@ -85,15 +103,15 @@ public class DesireMakeLove extends DesireBase
 		this.m_villager.getControllerLook().a(this.m_partner, 10, 30);
 		if(this.m_villager.e(this.m_partner) > 2.25)
 			this.getRemoteEntity().move((LivingEntity)this.m_partner);
-		else if(this.m_loveTick == 0 && this.m_partner.n())
+		else if(this.m_loveTick == 0 && this.m_partner.bU())
 			this.createBaby();
-		
-		if(this.m_villager.aE().nextInt(35) == 0)
+
+		if(this.m_villager.aD().nextInt(35) == 0)
 			this.m_villager.world.broadcastEntityEffect(this.m_villager, (byte)12);
-		
+
 		return true;
 	}
-	
+
 	protected void createBaby()
 	{
 		EntityVillager baby = this.m_villager.b(this.m_partner);
@@ -104,13 +122,13 @@ public class DesireMakeLove extends DesireBase
 		this.m_villager.world.addEntity(baby);
 		this.m_villager.world.broadcastEntityEffect(baby, (byte)12);
 	}
-	
+
 	protected boolean hasEnoughSpace()
 	{
 		if(!this.m_nearestVillage.i())
 			return false;
-		
+
 		int i = (int)(this.m_nearestVillage.getDoorCount() * 0.35D);
-		return this.m_nearestVillage.getPopulationCount() < i; 
+		return this.m_nearestVillage.getPopulationCount() < i;
 	}
 }

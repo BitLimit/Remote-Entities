@@ -9,7 +9,7 @@ public class RemoteSquid extends RemoteBaseEntity
 	{
 		this(inID, null, inManager);
 	}
-	
+
 	public RemoteSquid(int inID, RemoteSquidEntity inEntity, EntityManager inManager)
 	{
 		super(inID, RemoteEntityType.Squid, inManager);
@@ -20,5 +20,10 @@ public class RemoteSquid extends RemoteBaseEntity
 	public String getNativeEntityName()
 	{
 		return "Squid";
+	}
+
+	@Override
+	protected void setupSounds()
+	{
 	}
 }

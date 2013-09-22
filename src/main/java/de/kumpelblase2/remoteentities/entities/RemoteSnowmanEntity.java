@@ -1,14 +1,10 @@
 package de.kumpelblase2.remoteentities.entities;
 
-import org.bukkit.Bukkit;
+import net.minecraft.server.v1_6_R3.*;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import net.minecraft.server.v1_5_R2.*;
-import de.kumpelblase2.remoteentities.api.RemoteEntity;
-import de.kumpelblase2.remoteentities.api.RemoteEntityHandle;
-import de.kumpelblase2.remoteentities.api.RemoteProjectileType;
-import de.kumpelblase2.remoteentities.api.events.RemoteEntityInteractEvent;
-import de.kumpelblase2.remoteentities.api.events.RemoteEntityTouchEvent;
+import org.bukkit.util.Vector;
+import de.kumpelblase2.remoteentities.api.*;
 import de.kumpelblase2.remoteentities.api.features.InventoryFeature;
 import de.kumpelblase2.remoteentities.api.thinking.*;
 import de.kumpelblase2.remoteentities.api.thinking.goals.*;
@@ -16,15 +12,15 @@ import de.kumpelblase2.remoteentities.nms.PathfinderGoalSelectorHelper;
 
 public class RemoteSnowmanEntity extends EntitySnowman implements RemoteEntityHandle
 {
-	private RemoteEntity m_remoteEntity;
+	private final RemoteEntity m_remoteEntity;
 	protected int m_lastBouncedId;
 	protected long m_lastBouncedTime;
-	
+
 	public RemoteSnowmanEntity(World world)
 	{
 		this(world, null);
 	}
-	
+
 	public RemoteSnowmanEntity(World world, RemoteEntity inRemoteEntity)
 	{
 		super(world);
@@ -32,14 +28,14 @@ public class RemoteSnowmanEntity extends EntitySnowman implements RemoteEntityHa
 		new PathfinderGoalSelectorHelper(this.goalSelector).clearGoals();
 		new PathfinderGoalSelectorHelper(this.targetSelector).clearGoals();
 	}
-	
+
 	@Override
 	public Inventory getInventory()
 	{
 		if(!this.m_remoteEntity.getFeatures().hasFeature(InventoryFeature.class))
 			return null;
-		
-		return ((InventoryFeature)this.m_remoteEntity.getFeatures().getFeature(InventoryFeature.class)).getInventory();
+
+		return this.m_remoteEntity.getFeatures().getFeature(InventoryFeature.class).getInventory();
 	}
 
 	@Override
@@ -52,26 +48,10 @@ public class RemoteSnowmanEntity extends EntitySnowman implements RemoteEntityHa
 	public void setupStandardGoals()
 	{
 		Mind mind = this.getRemoteEntity().getMind();
-		mind.addMovementDesires(getDefaultMovementDesires(this.getRemoteEntity()));
-		mind.addTargetingDesires(getDefaultTargetingDesires(this.getRemoteEntity()));
+		mind.addMovementDesires(getDefaultMovementDesires());
+		mind.addTargetingDesires(getDefaultTargetingDesires());
 	}
-	
-	@Override
-	public void g(double x, double y, double z)
-	{		
-		if(this.m_remoteEntity != null && this.m_remoteEntity.isPushable() && !this.m_remoteEntity.isStationary())
-			super.g(x, y, z);
-	}
-	
-	@Override
-	public void move(double d0, double d1, double d2)
-	{
-		if(this.m_remoteEntity != null && this.m_remoteEntity.isStationary())
-			return;
-		
-		super.move(d0, d1, d2);
-	}
-	
+
 	@Override
 	public void l_()
 	{
@@ -79,78 +59,120 @@ public class RemoteSnowmanEntity extends EntitySnowman implements RemoteEntityHa
 		if(this.getRemoteEntity() != null)
 			this.getRemoteEntity().getMind().tick();
 	}
-	
+
 	@Override
-	public void b_(EntityHuman entity)
+	public void g(double x, double y, double z)
 	{
-		if(this.getRemoteEntity() == null || this.getRemoteEntity().getMind() == null)
+		if(this.m_remoteEntity == null)
+		{
+			super.g(x, y, z);
 			return;
-		
-		if(entity instanceof EntityPlayer && this.getRemoteEntity().getMind().canFeel() && this.getRemoteEntity().getMind().hasBehaviour("Touch"))
-		{
-			if (this.m_lastBouncedId != entity.id || System.currentTimeMillis() - this.m_lastBouncedTime > 1000)
-			{
-				if(entity.getBukkitEntity().getLocation().distanceSquared(getBukkitEntity().getLocation()) <= 1)
-				{
-					RemoteEntityTouchEvent event = new RemoteEntityTouchEvent(this.m_remoteEntity, entity.getBukkitEntity());
-					Bukkit.getPluginManager().callEvent(event);
-					if(event.isCancelled())
-						return;
-					
-					((TouchBehavior)this.getRemoteEntity().getMind().getBehaviour("Touch")).onTouch((Player)entity.getBukkitEntity());
-					this.m_lastBouncedTime = System.currentTimeMillis();
-					this.m_lastBouncedId = entity.id;
-				}
-			}
 		}
-		super.b_(entity);
+
+		Vector vector = ((RemoteBaseEntity)this.m_remoteEntity).onPush(x, y, z);
+		if(vector != null)
+			super.g(vector.getX(), vector.getY(), vector.getZ());
 	}
-	
+
 	@Override
-	public boolean a_(EntityHuman entity)
+	public void move(double d0, double d1, double d2)
 	{
-		if(this.getRemoteEntity() == null || this.getRemoteEntity().getMind() == null)
-			return super.a_(entity);
-		
-		if(entity instanceof EntityPlayer && this.getRemoteEntity().getMind().canFeel())
+		if(this.m_remoteEntity != null && this.m_remoteEntity.isStationary())
+			return;
+
+		super.move(d0, d1, d2);
+	}
+
+	@Override
+	public void e(float inXMotion, float inZMotion)
+	{
+		float[] motion = new float[] { inXMotion, inZMotion, 0 };
+		if(this.m_remoteEntity.getMind().hasBehaviour("Ride"))
+			((RideBehavior)this.m_remoteEntity.getMind().getBehaviour("Ride")).ride(motion);
+
+		super.e(motion[0], motion[1]);
+		this.motY = motion[2];
+	}
+
+	@Override
+	public void collide(Entity inEntity)
+	{
+		if(this.getRemoteEntity() == null)
 		{
-			RemoteEntityInteractEvent event = new RemoteEntityInteractEvent(this.m_remoteEntity, (Player)entity.getBukkitEntity());
-			Bukkit.getPluginManager().callEvent(event);
-			if(event.isCancelled())
-				return super.a_(entity);
-			
-			if(this.getRemoteEntity().getMind().hasBehaviour("Interact"))
-				((InteractBehavior)this.getRemoteEntity().getMind().getBehaviour("Interact")).onInteract((Player)entity.getBukkitEntity());
+			super.collide(inEntity);
+			return;
 		}
-		
-		return super.a_(entity);
-	}	
-	
+
+		if(((RemoteBaseEntity)this.m_remoteEntity).onCollide(inEntity.getBukkitEntity()))
+			super.collide(inEntity);
+	}
+
+	@Override
+	public boolean a(EntityHuman entity)
+	{
+		if(this.getRemoteEntity() == null)
+			return super.a(entity);
+
+		if(!(entity.getBukkitEntity() instanceof Player))
+			return super.a(entity);
+
+		return ((RemoteBaseEntity)this.m_remoteEntity).onInteract((Player)entity.getBukkitEntity()) && super.a(entity);
+	}
+
 	@Override
 	public void die(DamageSource damagesource)
 	{
-		if(this.getRemoteEntity() != null && this.getRemoteEntity().getMind() != null)
-		{
-			this.getRemoteEntity().getMind().clearMovementDesires();
-			this.getRemoteEntity().getMind().clearTargetingDesires();
-		}
+		((RemoteBaseEntity)this.m_remoteEntity).onDeath();
 		super.die(damagesource);
 	}
-	
-	public static DesireItem[] getDefaultMovementDesires(RemoteEntity inEntityFor)
+
+	@Override
+	protected String r()
 	{
-		return new DesireItem[] { 
-				new DesireItem(new DesireRangedAttack(inEntityFor, RemoteProjectileType.ENTITY_DEFAULT), 1),
-				new DesireItem(new DesireWanderAround(inEntityFor), 2),
-				new DesireItem(new DesireLookAtNearest(inEntityFor, EntityHuman.class, 6), 3),
-				new DesireItem(new DesireLookRandomly(inEntityFor), 4)
-		};
+		return this.m_remoteEntity.getSound(EntitySound.RANDOM);
 	}
-	
-	public static DesireItem[] getDefaultTargetingDesires(RemoteEntity inEntityFor)
+
+	@Override
+	protected String aO()
+	{
+		return this.m_remoteEntity.getSound(EntitySound.HURT);
+	}
+
+	@Override
+	protected String aP()
+	{
+		return this.m_remoteEntity.getSound(EntitySound.DEATH);
+	}
+
+	@Override
+	public void a(EntityLiving entityliving, float f) {
+		//Taken from EntitySnowman.java#62 - 72
+		//modified to work with custom sounds
+		EntitySnowball entitysnowball = new EntitySnowball(this.world, this);
+		double d0 = entityliving.locX - this.locX;
+		double d1 = entityliving.locY + (double) entityliving.getHeadHeight() - 1.100000023841858D - entitysnowball.locY;
+		double d2 = entityliving.locZ - this.locZ;
+		float f1 = MathHelper.sqrt(d0 * d0 + d2 * d2) * 0.2F;
+
+		entitysnowball.shoot(d0, d1 + (double) f1, d2, 1.6F, 12.0F);
+		this.makeSound(this.m_remoteEntity.getSound(EntitySound.ATTACK), 1.0F, 1.0F / (this.aD().nextFloat() * 0.4F + 0.8F));
+		this.world.addEntity(entitysnowball);
+	}
+
+	public static DesireItem[] getDefaultMovementDesires()
 	{
 		return new DesireItem[] {
-				new DesireItem(new DesireFindNearestTarget(inEntityFor, EntityLiving.class, 16, false, true, 0), 1)
+				new DesireItem(new DesireRangedAttack(RemoteProjectileType.ENTITY_DEFAULT, 20, 10), 1),
+				new DesireItem(new DesireWanderAround(), 2),
+				new DesireItem(new DesireLookAtNearest(EntityHuman.class, 6), 3),
+				new DesireItem(new DesireLookRandomly(), 4)
+		};
+	}
+
+	public static DesireItem[] getDefaultTargetingDesires()
+	{
+		return new DesireItem[] {
+				new DesireItem(new DesireFindNearestTarget(EntityInsentient.class, 16, false, true, 0), 1)
 		};
 	}
 }

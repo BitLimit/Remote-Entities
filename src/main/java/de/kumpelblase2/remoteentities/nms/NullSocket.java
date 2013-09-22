@@ -5,17 +5,17 @@ import java.net.Socket;
 
 class NullSocket extends Socket
 {
-	private final byte[] buffer = new byte[0];
-	
+	private final byte[] buffer = new byte[50];
+
 	@Override
 	public InputStream getInputStream()
 	{
 		return new ByteArrayInputStream(this.buffer);
 	}
-	
+
 	@Override
 	public OutputStream getOutputStream()
 	{
-		return new ByteArrayOutputStream(1);
+		return new ByteArrayOutputStream(10);
 	}
 }

@@ -2,26 +2,55 @@ package de.kumpelblase2.remoteentities.api.thinking.goals;
 
 import java.util.Iterator;
 import java.util.List;
+import net.minecraft.server.v1_6_R3.EntityAnimal;
 import org.bukkit.entity.LivingEntity;
-import net.minecraft.server.v1_5_R2.EntityAnimal;
 import de.kumpelblase2.remoteentities.api.RemoteEntity;
 import de.kumpelblase2.remoteentities.api.thinking.DesireBase;
 import de.kumpelblase2.remoteentities.exceptions.CantBreedException;
+import de.kumpelblase2.remoteentities.persistence.ParameterData;
+import de.kumpelblase2.remoteentities.persistence.SerializeAs;
+import de.kumpelblase2.remoteentities.utilities.ReflectionUtil;
 
+/**
+ * Using this desire the entity will try and always be near its parent.
+ */
 public class DesireFollowParent extends DesireBase
 {
 	protected EntityAnimal m_animal;
 	protected EntityAnimal m_parent;
 	protected int m_moveTick;
-	
-	public DesireFollowParent(RemoteEntity inEntity) throws Exception
+	@SerializeAs(pos = 1)
+	protected double m_speed;
+
+	@Deprecated
+	public DesireFollowParent(RemoteEntity inEntity)
 	{
 		super(inEntity);
 		if(!(this.getEntityHandle() instanceof EntityAnimal))
 			throw new CantBreedException();
-		
+
 		this.m_animal = (EntityAnimal)this.getEntityHandle();
-		
+	}
+
+	public DesireFollowParent()
+	{
+		this(-1);
+	}
+
+	public DesireFollowParent(double inSpeed)
+	{
+		super();
+		this.m_speed = inSpeed;
+	}
+
+	@Override
+	public void onAdd(RemoteEntity inEntity)
+	{
+		super.onAdd(inEntity);
+		if(!(this.getEntityHandle() instanceof EntityAnimal))
+			throw new CantBreedException();
+
+		this.m_animal = (EntityAnimal)this.getEntityHandle();
 	}
 
 	@SuppressWarnings("rawtypes")
@@ -30,7 +59,7 @@ public class DesireFollowParent extends DesireBase
 	{
 		if(this.getEntityHandle() == null)
 			return false;
-		
+
 		if(this.m_animal.getAge() >= 0)
 			return false;
 		else
@@ -52,7 +81,7 @@ public class DesireFollowParent extends DesireBase
 					}
 				}
 			}
-			
+
 			if(nearest == null)
 				return false;
 			else if(minDist < 9)
@@ -64,7 +93,7 @@ public class DesireFollowParent extends DesireBase
 			}
 		}
 	}
-	
+
 	@Override
 	public boolean canContinue()
 	{
@@ -76,27 +105,33 @@ public class DesireFollowParent extends DesireBase
 			return dist >= 9 && dist <= 256;
 		}
 	}
-	
+
 	@Override
 	public void startExecuting()
 	{
 		this.m_moveTick = 0;
 	}
-	
+
 	@Override
 	public void stopExecuting()
 	{
 		this.m_parent = null;
 	}
-	
+
 	@Override
 	public boolean update()
 	{
 		if(--this.m_moveTick <= 0)
 		{
 			this.m_moveTick = 10;
-			this.getRemoteEntity().move((LivingEntity)this.m_parent.getBukkitEntity());
-		}		
+			this.getRemoteEntity().move((LivingEntity)this.m_parent.getBukkitEntity(), (this.m_speed == -1 ? this.getRemoteEntity().getSpeed() : this.m_speed));
+		}
 		return true;
+	}
+
+	@Override
+	public ParameterData[] getSerializableData()
+	{
+		return ReflectionUtil.getParameterDataForClass(this).toArray(new ParameterData[0]);
 	}
 }

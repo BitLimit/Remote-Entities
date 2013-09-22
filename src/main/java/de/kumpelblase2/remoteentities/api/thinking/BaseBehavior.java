@@ -9,13 +9,13 @@ public abstract class BaseBehavior implements Behavior
 {
 	protected String m_name;
 	@SerializeAs(pos = 0, special = "entity")
-	protected RemoteEntity m_entity;
-	
+	protected final RemoteEntity m_entity;
+
 	public BaseBehavior(RemoteEntity inEntity)
 	{
 		this.m_entity = inEntity;
 	}
-	
+
 	@Override
 	public void run()
 	{
@@ -42,9 +42,9 @@ public abstract class BaseBehavior implements Behavior
 	{
 		return this.m_entity;
 	}
-	
+
 	@Override
-	public ParameterData[] getSerializeableData()
+	public ParameterData[] getSerializableData()
 	{
 		return ReflectionUtil.getParameterDataForClass(this).toArray(new ParameterData[0]);
 	}

@@ -1,19 +1,23 @@
 package de.kumpelblase2.remoteentities.api.thinking.goals;
 
-import org.bukkit.entity.LivingEntity;
-import net.minecraft.server.v1_5_R2.EntityHuman;
-import net.minecraft.server.v1_5_R2.ItemStack;
+import net.minecraft.server.v1_6_R3.EntityHuman;
+import net.minecraft.server.v1_6_R3.ItemStack;
 import de.kumpelblase2.remoteentities.api.RemoteEntity;
 import de.kumpelblase2.remoteentities.api.thinking.DesireBase;
 import de.kumpelblase2.remoteentities.api.thinking.DesireType;
 import de.kumpelblase2.remoteentities.persistence.ParameterData;
 import de.kumpelblase2.remoteentities.persistence.SerializeAs;
+import de.kumpelblase2.remoteentities.utilities.NMSUtil;
 import de.kumpelblase2.remoteentities.utilities.ReflectionUtil;
 
+/**
+ * Using this desire the entity will be tempted by a given item in a players hand.
+ * The entity might also run away when the player moves.
+ */
 public class DesireTempt extends DesireBase
 {
 	@SerializeAs(pos = 1)
-	protected int m_itemId;
+	protected int m_itemID;
 	@SerializeAs(pos = 2)
 	protected boolean m_scaredByMovement;
 	protected double m_x;
@@ -25,13 +29,30 @@ public class DesireTempt extends DesireBase
 	protected int m_delayTicks;
 	protected boolean m_isTempted;
 	protected boolean m_avoidWaterState;
-	
-	public DesireTempt(RemoteEntity inEntity, int inItemId, boolean inScaredByMovement)
+	@SerializeAs(pos = 3)
+	protected double m_speed;
+
+	@Deprecated
+	public DesireTempt(RemoteEntity inEntity, int inItemID, boolean inScaredByMovement)
 	{
 		super(inEntity);
-		this.m_itemId = inItemId;
+		this.m_itemID = inItemID;
 		this.m_scaredByMovement = inScaredByMovement;
 		this.m_type = DesireType.FULL_CONCENTRATION;
+	}
+
+	public DesireTempt(int inItemID, boolean inScaredByMovement)
+	{
+		this(inItemID, inScaredByMovement, -1);
+	}
+
+	public DesireTempt(int inItemID, boolean inScaredByMovement, double inSpeed)
+	{
+		super();
+		this.m_itemID = inItemID;
+		this.m_scaredByMovement = inScaredByMovement;
+		this.m_type = DesireType.FULL_CONCENTRATION;
+		this.m_speed = inSpeed;
 	}
 
 	@Override
@@ -46,18 +67,18 @@ public class DesireTempt extends DesireBase
 		{
 			if(this.getEntityHandle() == null)
 				return false;
-			
+
 			this.m_nearPlayer = this.getEntityHandle().world.findNearbyPlayer(this.getEntityHandle(), 10);
 			if(this.m_nearPlayer == null)
 				return false;
 			else
 			{
-				ItemStack item = this.m_nearPlayer.cb();
-				return item == null ? false : item.id == this.m_itemId;
+				ItemStack item = this.m_nearPlayer.by();
+				return item != null && item.id == this.m_itemID;
 			}
 		}
 	}
-	
+
 	@Override
 	public boolean canContinue()
 	{
@@ -67,7 +88,7 @@ public class DesireTempt extends DesireBase
 			{
 				if(this.m_nearPlayer.e(this.m_x, this.m_y, this.m_z) > 0.010000000000000002D)
 					return false;
-				
+
 				if(Math.abs(this.m_nearPlayer.pitch - this.m_pitch) > 5 || Math.abs(this.m_nearPlayer.yaw - this.m_yaw) > 5)
 					return false;
 			}
@@ -77,14 +98,14 @@ public class DesireTempt extends DesireBase
 				this.m_y = this.m_nearPlayer.locY;
 				this.m_z = this.m_nearPlayer.locZ;
 			}
-			
+
 			this.m_yaw = this.m_nearPlayer.yaw;
 			this.m_pitch = this.m_nearPlayer.pitch;
 		}
-		
+
 		return this.shouldExecute();
 	}
-	
+
 	@Override
 	public void startExecuting()
 	{
@@ -92,39 +113,39 @@ public class DesireTempt extends DesireBase
 		this.m_y = this.m_nearPlayer.locY;
 		this.m_z = this.m_nearPlayer.locZ;
 		this.m_isTempted = true;
-		this.m_avoidWaterState = this.getEntityHandle().getNavigation().a();
-		this.getEntityHandle().getNavigation().a(false);
+		this.m_avoidWaterState = this.getNavigation().a();
+		this.getNavigation().a(false);
 	}
-	
+
 	@Override
 	public void stopExecuting()
 	{
 		this.m_nearPlayer = null;
-		this.getEntityHandle().getNavigation().g();
+		this.getNavigation().h();
 		this.m_delayTicks = 100;
 		this.m_isTempted = false;
-		this.getEntityHandle().getNavigation().a(this.m_avoidWaterState);
+		this.getNavigation().a(this.m_avoidWaterState);
 	}
-	
+
 	@Override
 	public boolean update()
 	{
-		this.getEntityHandle().getControllerLook().a(this.m_nearPlayer, 30, this.getEntityHandle().bs());
+		NMSUtil.getControllerLook(this.getEntityHandle()).a(this.m_nearPlayer, 30, NMSUtil.getMaxHeadRotation(this.getEntityHandle()));
 		if(this.getEntityHandle().e(this.m_nearPlayer) < 6.25)
-			this.getEntityHandle().getNavigation().g();
+			this.getNavigation().h();
 		else
-			this.getRemoteEntity().move((LivingEntity)this.m_nearPlayer.getBukkitEntity());
-		
+			this.getRemoteEntity().move(this.m_nearPlayer.getBukkitEntity(), (this.m_speed == -1 ? this.getRemoteEntity().getSpeed() : this.m_speed));
+
 		return false;
 	}
-	
+
 	public boolean isTempted()
 	{
 		return this.m_isTempted;
 	}
-	
+
 	@Override
-	public ParameterData[] getSerializeableData()
+	public ParameterData[] getSerializableData()
 	{
 		return ReflectionUtil.getParameterDataForClass(this).toArray(new ParameterData[0]);
 	}

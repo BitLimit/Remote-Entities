@@ -1,23 +1,35 @@
 package de.kumpelblase2.remoteentities.api.thinking.goals;
 
-import net.minecraft.server.v1_5_R2.EntityLiving;
-import net.minecraft.server.v1_5_R2.MathHelper;
+import net.minecraft.server.v1_6_R3.EntityLiving;
+import net.minecraft.server.v1_6_R3.MathHelper;
 import de.kumpelblase2.remoteentities.api.RemoteEntity;
 import de.kumpelblase2.remoteentities.api.thinking.DesireBase;
 import de.kumpelblase2.remoteentities.api.thinking.DesireType;
 import de.kumpelblase2.remoteentities.persistence.ParameterData;
 import de.kumpelblase2.remoteentities.persistence.SerializeAs;
+import de.kumpelblase2.remoteentities.utilities.NMSUtil;
 import de.kumpelblase2.remoteentities.utilities.ReflectionUtil;
 
+/**
+ * Using this desire the entity will leap towards the target once it comes into a certain range of the entity.
+ */
 public class DesireLeapAtTarget extends DesireBase
 {
 	@SerializeAs(pos = 1)
 	protected float m_yMotion;
 	protected EntityLiving m_target;
-	
+
+	@Deprecated
 	public DesireLeapAtTarget(RemoteEntity inEntity, float inYMotion)
 	{
 		super(inEntity);
+		this.m_yMotion = inYMotion;
+		this.m_type = DesireType.OCCASIONAL_URGE;
+	}
+
+	public DesireLeapAtTarget(float inYMotion)
+	{
+		super();
 		this.m_yMotion = inYMotion;
 		this.m_type = DesireType.OCCASIONAL_URGE;
 	}
@@ -27,31 +39,23 @@ public class DesireLeapAtTarget extends DesireBase
 	{
 		if(this.getEntityHandle() == null)
 			return false;
-		
-		this.m_target = this.getEntityHandle().getGoalTarget();
+
+		this.m_target = NMSUtil.getGoalTarget(this.getEntityHandle());
 		if(this.m_target == null)
 			return false;
 		else
 		{
 			double dist = this.getEntityHandle().e(this.m_target);
-			if(dist >= 4 && dist <= 16)
-			{
-				if(!this.getEntityHandle().onGround)
-					return false;
-				
-				return this.getEntityHandle().aE().nextInt(5) == 0;
-			}
-			else
-				return false;
+			return dist >= 4 && dist <= 16 && this.getEntityHandle().onGround && this.getEntityHandle().aD().nextInt(5) == 0;
 		}
 	}
-	
+
 	@Override
 	public boolean canContinue()
 	{
 		return !this.getEntityHandle().onGround;
 	}
-	
+
 	@Override
 	public boolean update()
 	{
@@ -59,15 +63,15 @@ public class DesireLeapAtTarget extends DesireBase
 		double xDiff = this.m_target.locX - entity.locX;
 		double zDiff = this.m_target.locZ - entity.locZ;
 		float dist = MathHelper.sqrt(xDiff * xDiff + zDiff * zDiff);
-		
+
 		entity.motX = xDiff / dist * 0.5D * 0.800000011920929D + entity.motX * 0.20000000298023224D;
 		entity.motZ = zDiff / dist * 0.5D * 0.800000011920929D + entity.motZ * 0.20000000298023224D;
 		entity.motY = this.m_yMotion;
 		return true;
 	}
-	
+
 	@Override
-	public ParameterData[] getSerializeableData()
+	public ParameterData[] getSerializableData()
 	{
 		return ReflectionUtil.getParameterDataForClass(this).toArray(new ParameterData[0]);
 	}

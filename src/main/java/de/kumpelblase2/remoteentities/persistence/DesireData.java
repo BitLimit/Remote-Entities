@@ -1,10 +1,7 @@
 package de.kumpelblase2.remoteentities.persistence;
 
 import java.lang.reflect.Constructor;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import org.apache.commons.lang3.ClassUtils;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import de.kumpelblase2.remoteentities.RemoteEntities;
@@ -17,23 +14,23 @@ public class DesireData implements ConfigurationSerializable
 	public String type;
 	public ParameterData[] parameters;
 	public int priority;
-	
+
 	public DesireData()
 	{
 	}
-	
-	public DesireData(Desire inDesire, int inPriotity)
+
+	public DesireData(Desire inDesire, int inPriority)
 	{
 		this.type = inDesire.getClass().getName();
-		this.parameters = inDesire.getSerializeableData();
-		this.priority = inPriotity;
+		this.parameters = inDesire.getSerializableData();
+		this.priority = inPriority;
 	}
-	
+
 	public DesireData(DesireItem item)
 	{
 		this(item.getDesire(), item.getPriority());
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	public DesireData(Map<String, Object> inData)
 	{
@@ -44,7 +41,7 @@ public class DesireData implements ConfigurationSerializable
 			this.parameters = new ParameterData[0];
 			return;
 		}
-		
+
 		this.parameters = new ParameterData[parameterData.size()];
 		for(Map<String, Object> param : parameterData)
 		{
@@ -68,7 +65,7 @@ public class DesireData implements ConfigurationSerializable
 		data.put("priority", this.priority);
 		return data;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	public DesireItem create(RemoteEntity inEntity)
 	{
@@ -78,7 +75,7 @@ public class DesireData implements ConfigurationSerializable
 			Constructor<? extends Desire> con = c.getConstructor(this.getParameterClasses());
 			if(con == null)
 				return null;
-			
+
 			Object[] values = new Object[this.parameters.length];
 			for(int i = 0; i < values.length; i++)
 			{
@@ -86,7 +83,7 @@ public class DesireData implements ConfigurationSerializable
 					values[i] = inEntity;
 				else if(this.parameters[i].special.equals("manager"))
 					values[i] = inEntity.getManager();
-				else				
+				else
 					values[i] = EntityData.objectParser.deserialize(this.parameters[i]);
 			}
 			Desire d = con.newInstance(values);
@@ -99,7 +96,7 @@ public class DesireData implements ConfigurationSerializable
 			return null;
 		}
 	}
-	
+
 	@SuppressWarnings("rawtypes")
 	public Class[] getParameterClasses()
 	{
@@ -108,21 +105,15 @@ public class DesireData implements ConfigurationSerializable
 		{
 			try
 			{
-                Class c = Class.forName(this.parameters[i].type);
-
-//				Class c = ClassUtils.getClass(this.getClass().getClassLoader(), this.parameters[i].type);
-				if (c.getCanonicalName().equalsIgnoreCase("java.lang.Float")) {
-                    c = float.class;
-                } else if (c.getCanonicalName().equalsIgnoreCase("java.lang.Integer")) {
-                    c = int.class;
-                }
+				Class c = ClassUtils.getClass(this.getClass().getClassLoader(), this.parameters[i].type);
+				if(ClassUtils.wrapperToPrimitive(c) != null)
+					c = ClassUtils.wrapperToPrimitive(c);
 
 				classes[i] = c;
 			}
 			catch(Exception e)
 			{
 				e.printStackTrace();
-				continue;
 			}
 		}
 		return classes;

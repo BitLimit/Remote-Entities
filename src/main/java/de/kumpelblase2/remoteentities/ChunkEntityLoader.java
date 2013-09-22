@@ -1,35 +1,27 @@
 package de.kumpelblase2.remoteentities;
 
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.Set;
-import net.minecraft.server.v1_5_R2.WorldServer;
-import org.bukkit.Bukkit;
-import org.bukkit.Chunk;
-import org.bukkit.Location;
-import org.bukkit.craftbukkit.v1_5_R2.CraftWorld;
+import java.util.*;
+import net.minecraft.server.v1_6_R3.WorldServer;
+import org.bukkit.*;
+import org.bukkit.craftbukkit.v1_6_R3.CraftWorld;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.event.EventHandler;
-import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
+import org.bukkit.event.*;
 import org.bukkit.event.world.ChunkLoadEvent;
 import org.bukkit.event.world.ChunkUnloadEvent;
-import de.kumpelblase2.remoteentities.api.DespawnReason;
-import de.kumpelblase2.remoteentities.api.RemoteEntity;
-import de.kumpelblase2.remoteentities.api.RemoteEntityHandle;
+import de.kumpelblase2.remoteentities.api.*;
 
 class ChunkEntityLoader implements Listener
 {
-	private EntityManager m_manager;
-	private Set<EntityLoadData> m_toSpawn;
-	
+	private final EntityManager m_manager;
+	private final Set<EntityLoadData> m_toSpawn;
+
 	ChunkEntityLoader(EntityManager inManager)
 	{
 		this.m_manager = inManager;
 		this.m_toSpawn = new HashSet<EntityLoadData>();
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onChunkLoad(ChunkLoadEvent event)
 	{
@@ -38,7 +30,7 @@ class ChunkEntityLoader implements Listener
 		{
 			if(!entity.isSpawned())
 				continue;
-			
+
 			if(entity.getBukkitEntity().getLocation().getChunk() == c && entity.getHandle() != null)
 			{
 				WorldServer ws = ((CraftWorld)c.getWorld()).getHandle();
@@ -46,7 +38,7 @@ class ChunkEntityLoader implements Listener
 					ws.addEntity(entity.getHandle());
 			}
 		}
-		
+
 		Bukkit.getScheduler().runTask(RemoteEntities.getInstance(), new Runnable() {
 			public void run()
 			{
@@ -57,17 +49,14 @@ class ChunkEntityLoader implements Listener
 					Location loc = toSpawn.loc;
 					if(loc.getChunk() == c)
 					{
-						toSpawn.entity.spawn(loc);
-						if(toSpawn.entity.isSpawned() && toSpawn.setupGoals)
-							((RemoteEntityHandle)toSpawn.entity.getHandle()).setupStandardGoals();
-							
+						spawn(toSpawn);
 						it.remove();
 					}
 				}
 			}
 		});
 	}
-	
+
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
 	public void onChunkUnload(ChunkUnloadEvent event)
 	{
@@ -79,10 +68,10 @@ class ChunkEntityLoader implements Listener
 				{
 					if(!(entity instanceof LivingEntity))
 						continue;
-					
+
 					if(RemoteEntities.isRemoteEntity((LivingEntity)entity))
 					{
-						RemoteEntity rentity = (RemoteEntity)RemoteEntities.getRemoteEntityFromEntity((LivingEntity)entity);
+						RemoteEntity rentity = RemoteEntities.getRemoteEntityFromEntity((LivingEntity)entity);
 						if(rentity.isSpawned())
 						{
 							m_toSpawn.add(new EntityLoadData(rentity, entity.getLocation()));
@@ -93,24 +82,21 @@ class ChunkEntityLoader implements Listener
 			}
 		});
 	}
-	
+
 	/**
 	 * Checks if an entity can be directly be spawned at given location.
-	 * 
+	 *
 	 * @param inLocation	Location to check for
 	 * @return				true if it can be spawned, false if not
 	 */
 	public boolean canSpawnAt(Location inLocation)
 	{
-		if(inLocation.getChunk().isLoaded())
-			return true;
-		
-		return false;
+		return inLocation.getChunk().isLoaded();
 	}
-	
+
 	/**
 	 * Queues an entity to spawn whenever the chunk is loaded.
-	 * 
+	 *
 	 * @param inEntity		Entity to spawn
 	 * @param inLocation	Location to spawn at
 	 * @return				true if it gets queued, false if it could be spawned directly
@@ -119,10 +105,10 @@ class ChunkEntityLoader implements Listener
 	{
 		return this.queueSpawn(inEntity, inLocation, false);
 	}
-	
+
 	/**
 	 * Queues an entity to spawn whenever the chunk is loaded.
-	 * 
+	 *
 	 * @param inEntity		Entity to spawn
 	 * @param inLocation	Location to spawn at
 	 * @param inSetupGoals	Whether standard goals should be applied or not
@@ -130,32 +116,37 @@ class ChunkEntityLoader implements Listener
 	 */
 	public boolean queueSpawn(RemoteEntity inEntity, Location inLocation, boolean inSetupGoals)
 	{
+		EntityLoadData spawnData = new EntityLoadData(inEntity, inLocation, inSetupGoals);
 		if(this.canSpawnAt(inLocation))
 		{
-			inEntity.spawn(inLocation);
-			if(inEntity.isSpawned() && inSetupGoals && inEntity.getHandle() instanceof RemoteEntityHandle)
-				((RemoteEntityHandle)inEntity.getHandle()).setupStandardGoals();
-			
+			this.spawn(spawnData);
 			return false;
 		}
-		
-		this.m_toSpawn.add(new EntityLoadData(inEntity, inLocation, inSetupGoals));
+
+		this.m_toSpawn.add(spawnData);
 		return true;
 	}
-	
+
+	protected void spawn(EntityLoadData inData)
+	{
+		inData.entity.spawn(inData.loc);
+		if(inData.entity.isSpawned() && inData.setupGoals)
+			((RemoteEntityHandle)inData.entity.getHandle()).setupStandardGoals();
+	}
+
 	class EntityLoadData
 	{
-		RemoteEntity entity;
-		Location loc;
-		boolean setupGoals;
-		
+		final RemoteEntity entity;
+		final Location loc;
+		final boolean setupGoals;
+
 		public EntityLoadData(RemoteEntity inEntity, Location inLoc, boolean inSetupGoals)
 		{
 			this.entity = inEntity;
 			this.loc = inLoc;
 			this.setupGoals = inSetupGoals;
 		}
-		
+
 		public EntityLoadData(RemoteEntity inEntity, Location inLoc)
 		{
 			this(inEntity, inLoc, false);

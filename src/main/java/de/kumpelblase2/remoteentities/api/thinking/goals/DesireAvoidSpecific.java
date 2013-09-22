@@ -1,16 +1,18 @@
 package de.kumpelblase2.remoteentities.api.thinking.goals;
 
 import java.util.List;
-import net.minecraft.server.v1_5_R2.*;
+import net.minecraft.server.v1_6_R3.*;
 import de.kumpelblase2.remoteentities.api.RemoteEntity;
 import de.kumpelblase2.remoteentities.api.thinking.DesireBase;
 import de.kumpelblase2.remoteentities.api.thinking.DesireType;
+import de.kumpelblase2.remoteentities.api.thinking.selectors.EntitySelectorViewable;
 import de.kumpelblase2.remoteentities.persistence.ParameterData;
 import de.kumpelblase2.remoteentities.persistence.SerializeAs;
-import de.kumpelblase2.remoteentities.utilities.NMSClassMap;
-import de.kumpelblase2.remoteentities.utilities.ReflectionUtil;
-import de.kumpelblase2.remoteentities.nms.EntitySelectorViewable;
+import de.kumpelblase2.remoteentities.utilities.*;
 
+/**
+ * With this desire the entity will avoid the given type of entity and will run away from it once it comes near.
+ */
 public class DesireAvoidSpecific extends DesireBase
 {
 	@SerializeAs(pos = 4)
@@ -18,27 +20,55 @@ public class DesireAvoidSpecific extends DesireBase
 	@SerializeAs(pos = 1)
 	protected float m_minDistance;
 	@SerializeAs(pos = 3)
-	protected float m_farSpeed;
+	protected double m_farSpeed;
 	@SerializeAs(pos = 2)
-	protected float m_closeSpeed;
+	protected double m_closeSpeed;
+	@SerializeAs(pos = 5)
+	protected boolean m_ignoreOutOfSight;
 	protected Entity m_closestEntity;
 	protected PathEntity m_path;
 	protected EntitySelectorViewable m_selector;
-	
-	@SuppressWarnings("unchecked")
+
+	@Deprecated
 	public DesireAvoidSpecific(RemoteEntity inEntity, float inMinDistance, float inCloseSpeed, float inFarSpeed, Class<?> inToAvoid)
 	{
-		super(inEntity);
+		this(inEntity, inMinDistance, inCloseSpeed, inFarSpeed, inToAvoid, true);
+	}
+
+	@Deprecated
+	@SuppressWarnings("unchecked")
+	public DesireAvoidSpecific(RemoteEntity inEntity, float inMinDistance, float inCloseSpeed, float inFarSpeed, Class<?> inToAvoid, boolean inIgnoreOutOfSight)
+	{
+		this(inMinDistance, inCloseSpeed, inFarSpeed, inToAvoid, inIgnoreOutOfSight);
+		this.m_entity = inEntity;
+	}
+
+	public DesireAvoidSpecific(float inMinDistance, double inCloseSpeed, double inFarSpeed, Class<?> inToAvoid)
+	{
+		this(inMinDistance, inCloseSpeed, inFarSpeed, inToAvoid, true);
+	}
+
+	@SuppressWarnings("unchecked")
+	public DesireAvoidSpecific(float inMinDistance, double inCloseSpeed, double inFarSpeed, Class<?> inToAvoid, boolean inIgnoreOutOfSight)
+	{
+		super();
 		if(Entity.class.isAssignableFrom(inToAvoid))
 			this.m_toAvoid = (Class<? extends Entity>)inToAvoid;
 		else
 			this.m_toAvoid = (Class<? extends Entity>)NMSClassMap.getNMSClass(inToAvoid);
-		
+
 		this.m_minDistance = inMinDistance;
 		this.m_farSpeed = inFarSpeed;
 		this.m_closeSpeed = inCloseSpeed;
-		this.m_selector = new EntitySelectorViewable(this.getEntityHandle());
+		this.m_ignoreOutOfSight = inIgnoreOutOfSight;
 		this.m_type = DesireType.PRIMAL_INSTINCT;
+	}
+
+	@Override
+	public void onAdd(RemoteEntity inEntity)
+	{
+		super.onAdd(inEntity);
+		this.m_selector = new EntitySelectorViewable(this.getEntityHandle());
 	}
 
 	@Override
@@ -58,12 +88,12 @@ public class DesireAvoidSpecific extends DesireBase
 	{
 		if(!this.m_closestEntity.isAlive())
 			return false;
-		
+
 		if(this.getEntityHandle().e(this.m_closestEntity) > 49)
-			this.getEntityHandle().getNavigation().a(this.m_farSpeed);
+			this.getNavigation().a(this.m_farSpeed);
 		else
-			this.getEntityHandle().getNavigation().a(this.m_closeSpeed);
-		
+			this.getNavigation().a(this.m_closeSpeed);
+
 		return true;
 	}
 
@@ -72,7 +102,7 @@ public class DesireAvoidSpecific extends DesireBase
 	{
 		if(this.getEntityHandle() == null)
 			return false;
-		
+
 		if(this.m_toAvoid == EntityHuman.class)
         {
             if(this.getEntityHandle() instanceof EntityTameableAnimal && ((EntityTameableAnimal)this.getEntityHandle()).isTamed())
@@ -94,32 +124,35 @@ public class DesireAvoidSpecific extends DesireBase
             this.m_closestEntity = (Entity)var1.get(0);
         }
 
-        if (!this.getEntityHandle().aD().canSee(this.m_closestEntity))
+		if(!this.m_ignoreOutOfSight && !NMSUtil.getEntitySenses(this.getEntityHandle()).canSee(this.m_closestEntity))
+			return false;
+
+        Vec3D var2 = de.kumpelblase2.remoteentities.nms.RandomPositionGenerator.b(this.getEntityHandle(), 16, 7, Vec3D.a.create(this.m_closestEntity.locX, this.m_closestEntity.locY, this.m_closestEntity.locZ));
+
+        if (var2 == null)
             return false;
+        else if (this.m_closestEntity.e(var2.c, var2.d, var2.e) < this.m_closestEntity.e(this.getEntityHandle()))
+        {
+            Vec3D.a.release(var2);
+            return false;
+        }
         else
         {
-            Vec3D var2 = de.kumpelblase2.remoteentities.nms.RandomPositionGenerator.b(this.getEntityHandle(), 16, 7, Vec3D.a.create(this.m_closestEntity.locX, this.m_closestEntity.locY, this.m_closestEntity.locZ));
-
-            if (var2 == null)
-                return false;
-            else if (this.m_closestEntity.e(var2.c, var2.d, var2.e) < this.m_closestEntity.e(this.getEntityHandle()))
-                return false;
-            else
-            {
-                this.m_path = this.getEntityHandle().getNavigation().a(var2.c, var2.d, var2.e);
-                return this.m_path == null ? false : this.m_path.b(var2);
-            }
+            this.m_path = this.getNavigation().a(var2.c, var2.d, var2.e);
+            boolean returnValue = this.m_path != null && this.m_path.b(var2);
+            Vec3D.a.release(var2);
+            return returnValue;
         }
 	}
 
 	@Override
 	public boolean canContinue()
 	{
-		return !this.getEntityHandle().getNavigation().f();
+		return !this.getNavigation().g();
 	}
-	
+
 	@Override
-	public ParameterData[] getSerializeableData()
+	public ParameterData[] getSerializableData()
 	{
 		return ReflectionUtil.getParameterDataForClass(this).toArray(new ParameterData[0]);
 	}

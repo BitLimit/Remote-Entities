@@ -1,22 +1,21 @@
 package de.kumpelblase2.remoteentities.entities;
 
-import net.minecraft.server.v1_5_R2.EntityLiving;
-import org.bukkit.craftbukkit.v1_5_R2.entity.CraftLivingEntity;
-import org.bukkit.entity.LivingEntity;
+import java.util.HashMap;
+import java.util.Map;
+import org.bukkit.entity.Enderman;
 import de.kumpelblase2.remoteentities.EntityManager;
-import de.kumpelblase2.remoteentities.api.Fightable;
+import de.kumpelblase2.remoteentities.api.EntitySound;
 import de.kumpelblase2.remoteentities.api.RemoteEntityType;
-import de.kumpelblase2.remoteentities.api.thinking.goals.DesireFindAttackingTarget;
 
-public class RemoteEnderman extends RemoteBaseEntity implements Fightable
+public class RemoteEnderman extends RemoteAttackingBaseEntity<Enderman>
 {
 	protected boolean m_hadAttackDesire;
-	
+
 	public RemoteEnderman(int inID, EntityManager inManager)
 	{
 		this(inID, null, inManager);
 	}
-	
+
 	public RemoteEnderman(int inID, RemoteEndermanEntity inEntity, EntityManager inManager)
 	{
 		super(inID, RemoteEntityType.Enderman, inManager);
@@ -24,45 +23,20 @@ public class RemoteEnderman extends RemoteBaseEntity implements Fightable
 	}
 
 	@Override
-	public void attack(LivingEntity inTarget)
-	{
-		if(this.m_entity == null)
-			return;
-		
-		this.m_hadAttackDesire = this.getMind().getTargetingDesire(DesireFindAttackingTarget.class) != null;
-		if(!this.m_hadAttackDesire)
-			this.getMind().addTargetingDesire(new DesireFindAttackingTarget(this, 16, false, false), this.getMind().getHighestTargetingPriority() + 1);
-		
-		this.getHandle().setGoalTarget(((CraftLivingEntity)inTarget).getHandle());
-	}
-
-	@Override
-	public void loseTarget()
-	{
-		if(this.m_entity == null)
-			return;
-		
-		this.getHandle().setGoalTarget((EntityLiving)null);
-		if(!this.m_hadAttackDesire)
-			this.getMind().removeTargetingDesire(DesireFindAttackingTarget.class);
-	}
-
-	@Override
-	public LivingEntity getTarget()
-	{
-		if(this.m_entity == null)
-			return null;
-		
-		EntityLiving target = this.m_entity.getGoalTarget();
-		if(target != null)
-			return (LivingEntity)target.getBukkitEntity();
-		
-		return null;
-	}
-
-	@Override
 	public String getNativeEntityName()
 	{
 		return "Enderman";
+	}
+
+	@Override
+	protected void setupSounds()
+	{
+		Map<String, String> random = new HashMap<String, String>();
+		random.put("idle", "mob.endermen.idle");
+		random.put("scream", "mob.endermen.scream");
+		this.setSounds(EntitySound.RANDOM, random);
+		this.setSound(EntitySound.HURT, "mob.endermen.hit");
+		this.setSound(EntitySound.DEATH, "mob.endermen.death");
+		this.setSound(EntitySound.TELEPORT, "mob.endermen.portal");
 	}
 }

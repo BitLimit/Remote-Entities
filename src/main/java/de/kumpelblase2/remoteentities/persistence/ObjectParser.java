@@ -1,15 +1,33 @@
 package de.kumpelblase2.remoteentities.persistence;
 
-import net.minecraft.server.v1_5_R2.EntityLiving;
-import org.bukkit.Bukkit;
-import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.craftbukkit.v1_5_R2.entity.CraftLivingEntity;
+import java.util.HashMap;
+import java.util.Map;
+import net.minecraft.server.v1_6_R3.EntityLiving;
+import org.bukkit.*;
+import org.bukkit.craftbukkit.v1_6_R3.entity.CraftLivingEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.inventory.Inventory;
+import de.kumpelblase2.remoteentities.utilities.ItemSerialization;
 
+/**
+ * This class is used to serialize and deserialize any kind of object
+ */
 public class ObjectParser
 {
+	private static Map<String, Class<?>> s_primitives = new HashMap<String, Class<?>>();
+
+	static
+	{
+		s_primitives.put("byte", byte.class);
+		s_primitives.put("short", short.class);
+		s_primitives.put("char", char.class);
+		s_primitives.put("int", int.class);
+		s_primitives.put("long", long.class);
+		s_primitives.put("float", float.class);
+		s_primitives.put("double", double.class);
+	}
+
 	@SuppressWarnings("rawtypes")
 	public Object deserialize(ParameterData inData)
 	{
@@ -31,10 +49,10 @@ public class ObjectParser
 			return this.getDeserializedObject(typeClass, inData.value);
 		}
 	}
-	
+
 	@SuppressWarnings({ "unchecked", "rawtypes" })
 	protected Object getDeserializedObject(Class inType, Object inObject)
-	{		
+	{
 		if(inType.isAssignableFrom(Class.class))
 			return this.getClass(inObject.toString());
 		else if(inType.isAssignableFrom(int.class) || inType.isAssignableFrom(Integer.class))
@@ -51,6 +69,8 @@ public class ObjectParser
 			return this.getNMSEntity(inObject);
 		else if(inType.isAssignableFrom(LivingEntity.class))
 			return this.getEntity(inObject);
+		else if(inType.isAssignableFrom(Inventory.class))
+			return this.getInventory((String)inObject);
 		else if(inType.isAssignableFrom(IEntitySerializer.class))
 		{
 			try
@@ -70,12 +90,12 @@ public class ObjectParser
 	{
 		if(inObject.getClass().isArray())
 		{
-			Object[] data = (Object[])inObject;			
+			Object[] data = (Object[])inObject;
 			StringBuilder sb = new StringBuilder();
 			sb.append("[");
-			for(int i = 0; i < data.length; i++)
+			for(Object aData : data)
 			{
-				sb.append(this.getSerializedObject(data[i]).toString());
+				sb.append("'").append(this.getSerializedObject(aData).toString()).append("'");
 				sb.append(",");
 			}
 			sb.setCharAt(sb.length(), ']');
@@ -86,7 +106,7 @@ public class ObjectParser
 			return this.getSerializedObject(inObject);
 		}
 	}
-	
+
 	@SuppressWarnings("rawtypes")
 	protected Object getSerializedObject(Object inObject)
 	{
@@ -98,15 +118,20 @@ public class ObjectParser
 			return ((LivingEntity)inObject).getUniqueId().toString();
 		else if(inObject instanceof Class)
 			return ((Class)inObject).getName();
+		else if(inObject instanceof Inventory)
+			return this.serializeInventory((Inventory)inObject);
 		else
 			return inObject.toString();
 	}
-	
+
 	@SuppressWarnings("rawtypes")
 	protected Class getClass(String inName)
 	{
 		try
 		{
+			if(s_primitives.containsKey(inName))
+				return s_primitives.get(inName);
+
 			return Class.forName(inName);
 		}
 		catch(Exception e)
@@ -114,7 +139,7 @@ public class ObjectParser
 			return null;
 		}
 	}
-	
+
 	protected Integer getInt(Object inValue)
 	{
 		try
@@ -126,7 +151,7 @@ public class ObjectParser
 			return 0;
 		}
 	}
-	
+
 	protected boolean getBoolean(Object inValue)
 	{
 		try
@@ -138,7 +163,7 @@ public class ObjectParser
 			return false;
 		}
 	}
-	
+
 	protected float getFloat(Object inValue)
 	{
 		try
@@ -150,7 +175,7 @@ public class ObjectParser
 			return 0f;
 		}
 	}
-	
+
 	protected double getDouble(Object inValue)
 	{
 		try
@@ -162,16 +187,16 @@ public class ObjectParser
 			return 0d;
 		}
 	}
-	
+
 	protected EntityLiving getNMSEntity(Object inValue)
 	{
 		Entity e = this.getEntity(inValue);
 		if(e == null)
 			return null;
-		
+
 		return ((CraftLivingEntity)e).getHandle();
 	}
-	
+
 	protected Entity getEntity(Object inValue)
 	{
 		for(World w : Bukkit.getWorlds())
@@ -183,5 +208,15 @@ public class ObjectParser
 			}
 		}
 		return null;
+	}
+
+	protected Object getInventory(String inObject)
+	{
+		return ItemSerialization.fromString(inObject);
+	}
+
+	protected String serializeInventory(Inventory inInventory)
+	{
+		return ItemSerialization.toString(inInventory);
 	}
 }

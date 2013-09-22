@@ -1,21 +1,32 @@
 package de.kumpelblase2.remoteentities.nms;
 
 import java.io.IOException;
-import net.minecraft.server.v1_5_R2.*;
+import java.lang.reflect.Field;
+import net.minecraft.server.v1_6_R3.*;
 
 public class RemoteEntityNetworkManager extends NetworkManager
 {
 
 	public RemoteEntityNetworkManager(MinecraftServer server) throws IOException
 	{
-		super(MinecraftServer.getServer().getLogger(), new NullSocket(), "remoteentitiymanager", new Connection()
+		super(server.getLogger(), new NullSocket(), "remoteentitiymanager", new Connection()
 		{
 			@Override
 			public boolean a()
 			{
 				return false;
 			}
-		}, server.F().getPrivate());
+		}, server.H().getPrivate());
+		try
+		{
+			Field field = NetworkManager.class.getDeclaredField("n");
+			field.setAccessible(true);
+			field.set(this, false);
+		}
+		catch(Exception e)
+		{
+			e.printStackTrace();
+		}
 	}
 
 	@Override
@@ -34,7 +45,18 @@ public class RemoteEntityNetworkManager extends NetworkManager
 	}
 
 	@Override
+	public void d()
+	{
+	}
+
+	@Override
 	public void a()
 	{
+	}
+
+	@Override
+	public int e()
+	{
+		return 0;
 	}
 }

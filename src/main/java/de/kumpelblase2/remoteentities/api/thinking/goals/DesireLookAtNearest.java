@@ -1,6 +1,7 @@
 package de.kumpelblase2.remoteentities.api.thinking.goals;
 
 import java.util.List;
+import net.minecraft.server.v1_6_R3.*;
 import de.kumpelblase2.remoteentities.api.RemoteEntity;
 import de.kumpelblase2.remoteentities.api.thinking.DesireBase;
 import de.kumpelblase2.remoteentities.api.thinking.DesireType;
@@ -10,7 +11,11 @@ import de.kumpelblase2.remoteentities.utilities.NMSClassMap;
 import de.kumpelblase2.remoteentities.utilities.ReflectionUtil;
 import net.minecraft.server.v1_5_R2.*;
 import org.bukkit.Bukkit;
+import de.kumpelblase2.remoteentities.utilities.*;
 
+/**
+ * Using this desire the entity will try to look at the nearest entity of the given type.
+ */
 public class DesireLookAtNearest extends DesireBase
 {
 	protected EntityLiving m_target;
@@ -22,12 +27,14 @@ public class DesireLookAtNearest extends DesireBase
 	protected float m_minDistSquared;
 	@SerializeAs(pos = 3)
 	protected float m_lookPossibility;
-	
+
+	@Deprecated
 	public DesireLookAtNearest(RemoteEntity inEntity, Class<?> inTarget, float inMinDistance)
 	{
 		this(inEntity, inTarget, inMinDistance, 0.02F);
 	}
-	
+
+	@Deprecated
 	@SuppressWarnings("unchecked")
 	public DesireLookAtNearest(RemoteEntity inEntity, Class<?> inTarget, float inMinDistance, float inPossibility)
 	{
@@ -39,13 +46,32 @@ public class DesireLookAtNearest extends DesireBase
 		this.m_minDist = inMinDistance;
 		this.m_minDistSquared = this.m_minDist * this.m_minDist;
 		this.m_lookPossibility = inPossibility;
-		this.m_type = DesireType.FULL_CONCENTRATION;
+		this.m_type = DesireType.HAPPINESS;
+	}
+
+	public DesireLookAtNearest(Class<?> inTarget, float inMinDistance)
+	{
+		this(inTarget, inMinDistance, 0.02F);
+	}
+
+	@SuppressWarnings("unchecked")
+	public DesireLookAtNearest(Class<?> inTarget, float inMinDistance, float inPossibility)
+	{
+		super();
+		if(Entity.class.isAssignableFrom(inTarget))
+			this.m_toLookAt = (Class<? extends Entity>)inTarget;
+		else
+			this.m_toLookAt = (Class<? extends Entity>)NMSClassMap.getNMSClass(inTarget);
+		this.m_minDist = inMinDistance;
+		this.m_minDistSquared = this.m_minDist * this.m_minDist;
+		this.m_lookPossibility = inPossibility;
+		this.m_type = DesireType.HAPPINESS;
 	}
 
 	@Override
 	public void startExecuting()
 	{
-		this.m_lookTicks = 40 + this.getEntityHandle().aE().nextInt(40);
+		this.m_lookTicks = 40 + this.getEntityHandle().aD().nextInt(40);
 	}
 
 	@Override
@@ -57,11 +83,18 @@ public class DesireLookAtNearest extends DesireBase
 	@Override
 	public boolean update()
 	{
+<<<<<<< HEAD
         if (this.m_lookPossibility == 0F)
             return false;
 
         this.getEntityHandle().getControllerLook().a(this.m_target.locX, this.m_target.locY + this.m_target.getHeadHeight(), this.m_target.locZ, 10, this.getEntityHandle().bs());
 
+=======
+		if(this.m_target == null)
+			return false;
+
+		NMSUtil.getControllerLook(this.getEntityHandle()).a(this.m_target.locX, this.m_target.locY + this.m_target.getHeadHeight(), this.m_target.locZ, 10, NMSUtil.getMaxHeadRotation(this.getEntityHandle()));
+>>>>>>> 2f469e7d89e191cccc1e9926994f354ad4677b84
 		this.m_lookTicks--;
 		return true;
 	}
@@ -72,8 +105,8 @@ public class DesireLookAtNearest extends DesireBase
 		EntityLiving entity = this.getEntityHandle();
 		if(entity == null)
 			return false;
-		
-		if(entity.aE().nextFloat() >= this.m_lookPossibility)
+
+		if(entity.aD().nextFloat() >= this.m_lookPossibility)
 			return false;
 		else
 		{
@@ -81,7 +114,7 @@ public class DesireLookAtNearest extends DesireBase
 				this.m_target = entity.world.findNearbyPlayer(entity, this.m_minDist);
 			else
 				this.m_target = (EntityLiving)entity.world.a(this.m_toLookAt, entity.boundingBox.grow(this.m_minDist, 3, this.m_minDist), entity);
-			
+
 			return this.m_target != null;
 		}
 	}
@@ -89,6 +122,7 @@ public class DesireLookAtNearest extends DesireBase
 	@Override
 	public boolean canContinue()
 	{
+<<<<<<< HEAD
         if (this.m_target == null)
             return false;
 
@@ -99,16 +133,23 @@ public class DesireLookAtNearest extends DesireBase
 			return false;
 		
 		return this.m_lookTicks > 0;
+=======
+		return this.m_target.isAlive() && this.getEntityHandle().e(this.m_target) <= this.m_minDistSquared && this.m_lookTicks > 0;
+>>>>>>> 2f469e7d89e191cccc1e9926994f354ad4677b84
 	}
-	
+
 	@Override
-	public ParameterData[] getSerializeableData()
+	public ParameterData[] getSerializableData()
 	{
 		List<ParameterData> thisData = ReflectionUtil.getParameterDataForClass(this);
-		return thisData.toArray(new ParameterData[0]);
+		return thisData.toArray(new ParameterData[thisData.size()]);
 	}
+<<<<<<< HEAD
 
     public void setLookPossibility(float possibility) {
         this.m_lookPossibility = possibility;
     }
 }
+=======
+}
+>>>>>>> 2f469e7d89e191cccc1e9926994f354ad4677b84
