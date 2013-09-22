@@ -30,7 +30,6 @@ public class BehaviorData implements ConfigurationSerializable
 		this.type = (String)inData.get("type");
 		List<Map<String, Object>> parameterData = (List<Map<String, Object>>)inData.get("parameters");
 
-        System.out.println("Parameters: " + parameterData.toString());
 		if(parameterData == null || parameterData.size() == 0)
 		{
 			this.parameters = new ParameterData[0];
@@ -102,8 +101,6 @@ public class BehaviorData implements ConfigurationSerializable
 		{
 			try
 			{
-                Bukkit.broadcastMessage(parameterData.toString());
-
 				Class c = ClassUtils.getClass(this.getClass().getClassLoader(), parameterData.type);
 				if(ClassUtils.wrapperToPrimitive(c) != null)
 					c = ClassUtils.wrapperToPrimitive(c);

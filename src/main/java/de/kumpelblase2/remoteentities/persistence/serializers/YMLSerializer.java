@@ -1,7 +1,10 @@
 package de.kumpelblase2.remoteentities.persistence.serializers;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
+
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.configuration.serialization.ConfigurationSerialization;
@@ -50,14 +53,11 @@ public class YMLSerializer extends PreparationSerializer implements ISingleEntit
     @Override
     public EntityData[] loadData()
     {
-        if(this.m_configFile == null || this.m_config == null)
-        {
-            if(!this.loadConfig())
-                return new EntityData[0];
-        }
+        this.loadConfig();
 
-        if(!this.m_config.contains("entities"))
-            return new EntityData[0];
+        if(this.m_config.getList("entities") == null) {
+            this.m_config.set("entities", new ArrayList<EntityData>());
+        }
 
         List<EntityData> entitydata = (List<EntityData>)this.m_config.getList("entities");
         return entitydata.toArray(new EntityData[entitydata.size()]);

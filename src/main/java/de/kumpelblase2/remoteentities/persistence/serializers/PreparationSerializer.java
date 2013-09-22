@@ -30,7 +30,6 @@ public abstract class PreparationSerializer implements IEntitySerializer
 	{
 		EntityManager manager = RemoteEntities.getManagerOfPlugin(this.m_plugin.getName());
 
-        Bukkit.broadcastMessage(inData.toString());
         CreateEntityContext context = manager.prepareEntity(inData.type);
 		context.withName(inData.name).asPushable(inData.pushable).asStationary(inData.stationary).withID(inData.id);
 		context.withSpeed(inData.speed).withPathfindingRange(inData.pathfindingRange);

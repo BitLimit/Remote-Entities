@@ -5,6 +5,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.craftbukkit.v1_6_R3.CraftWorld;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EntityEquipment;
+import org.bukkit.inventory.Inventory;
 import org.bukkit.metadata.FixedMetadataValue;
 import de.kumpelblase2.remoteentities.EntityManager;
 import de.kumpelblase2.remoteentities.api.*;
@@ -36,9 +38,20 @@ public class RemotePlayer extends RemoteAttackingBaseEntity<Player>
 	public void setName(String inName)
 	{
 		this.m_name = inName;
-		Location loc = this.getBukkitEntity().getLocation();
-		this.despawn(DespawnReason.NAME_CHANGE);
-		this.spawn(loc);
+        this.getBukkitEntity().setCustomName(this.m_name);
+        this.getBukkitEntity().setCustomNameVisible(true);
+        this.save();
+
+
+//		Location loc = this.getBukkitEntity().getLocation();
+//        Inventory inventory = this.getInventory();
+//        EntityEquipment entityEquipment = this.getBukkitEntity().getEquipment();
+//
+//		this.despawn(DespawnReason.NAME_CHANGE);
+//
+//		this.spawn(loc);
+//        this.getInventory().setContents(inventory.getContents());
+//        this.getBukkitEntity().getEquipment().setArmorContents(entityEquipment.getArmorContents());
 	}
 
 	@Override
