@@ -3,6 +3,7 @@ package de.kumpelblase2.remoteentities.persistence;
 import java.lang.reflect.Constructor;
 import java.util.*;
 import org.apache.commons.lang3.ClassUtils;
+import org.bukkit.Bukkit;
 import org.bukkit.configuration.serialization.ConfigurationSerializable;
 import de.kumpelblase2.remoteentities.RemoteEntities;
 import de.kumpelblase2.remoteentities.api.RemoteEntity;
@@ -28,6 +29,8 @@ public class BehaviorData implements ConfigurationSerializable
 	{
 		this.type = (String)inData.get("type");
 		List<Map<String, Object>> parameterData = (List<Map<String, Object>>)inData.get("parameters");
+
+        System.out.println("Parameters: " + parameterData.toString());
 		if(parameterData == null || parameterData.size() == 0)
 		{
 			this.parameters = new ParameterData[0];
@@ -38,7 +41,8 @@ public class BehaviorData implements ConfigurationSerializable
 		for(Map<String, Object> param : parameterData)
 		{
 			ParameterData paramData = new ParameterData(param);
-			this.parameters[paramData.pos] = paramData;
+
+			    this.parameters[paramData.pos + 1] = paramData;
 		}
 	}
 
@@ -62,6 +66,8 @@ public class BehaviorData implements ConfigurationSerializable
 		try
 		{
 			Class<? extends Behavior> c = (Class<? extends Behavior>)Class.forName(this.type);
+
+
 			Constructor<? extends Behavior> con = c.getConstructor(this.getParameterClasses());
 			if(con == null)
 				return null;
@@ -90,11 +96,15 @@ public class BehaviorData implements ConfigurationSerializable
 	public Class[] getParameterClasses()
 	{
 		Class[] classes = new Class[this.parameters.length];
-		for(int i = 0; i < classes.length; i++)
+
+        int i = 0;
+        for (ParameterData parameterData : this.parameters)
 		{
 			try
 			{
-				Class c = ClassUtils.getClass(this.getClass().getClassLoader(), this.parameters[i].type);
+                Bukkit.broadcastMessage(parameterData.toString());
+
+				Class c = ClassUtils.getClass(this.getClass().getClassLoader(), parameterData.type);
 				if(ClassUtils.wrapperToPrimitive(c) != null)
 					c = ClassUtils.wrapperToPrimitive(c);
 
@@ -104,6 +114,8 @@ public class BehaviorData implements ConfigurationSerializable
 			{
 				e.printStackTrace();
 			}
+
+            i++;
 		}
 		return classes;
 	}

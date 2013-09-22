@@ -50,26 +50,13 @@ public class DesireLookRandomly extends DesireBase
 
 		this.m_xDiff = Math.cos(d);
 		this.m_zDiff = Math.sin(d);
-<<<<<<< HEAD
-		this.m_lookTick = 20 + this.getEntityHandle().aE().nextInt(20);
-        this.shouldLook = true;
-	}
-
-    @Override
-    public void stopExecuting()
-    {
-        this.shouldLook = false;
-    }
-	
-=======
 		this.m_lookTick = 20 + this.getEntityHandle().aD().nextInt(20);
 	}
 
->>>>>>> 2f469e7d89e191cccc1e9926994f354ad4677b84
 	@Override
 	public boolean update()
 	{
-        if (!this.shouldLook)
+        if (!this.shouldExecute())
             return false;
 
 		this.m_lookTick--;

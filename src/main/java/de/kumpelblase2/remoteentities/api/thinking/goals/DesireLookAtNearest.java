@@ -9,8 +9,7 @@ import de.kumpelblase2.remoteentities.persistence.ParameterData;
 import de.kumpelblase2.remoteentities.persistence.SerializeAs;
 import de.kumpelblase2.remoteentities.utilities.NMSClassMap;
 import de.kumpelblase2.remoteentities.utilities.ReflectionUtil;
-import net.minecraft.server.v1_5_R2.*;
-import org.bukkit.Bukkit;
+
 import de.kumpelblase2.remoteentities.utilities.*;
 
 /**
@@ -83,18 +82,11 @@ public class DesireLookAtNearest extends DesireBase
 	@Override
 	public boolean update()
 	{
-<<<<<<< HEAD
-        if (this.m_lookPossibility == 0F)
-            return false;
-
-        this.getEntityHandle().getControllerLook().a(this.m_target.locX, this.m_target.locY + this.m_target.getHeadHeight(), this.m_target.locZ, 10, this.getEntityHandle().bs());
-
-=======
 		if(this.m_target == null)
 			return false;
 
 		NMSUtil.getControllerLook(this.getEntityHandle()).a(this.m_target.locX, this.m_target.locY + this.m_target.getHeadHeight(), this.m_target.locZ, 10, NMSUtil.getMaxHeadRotation(this.getEntityHandle()));
->>>>>>> 2f469e7d89e191cccc1e9926994f354ad4677b84
+
 		this.m_lookTicks--;
 		return true;
 	}
@@ -122,20 +114,7 @@ public class DesireLookAtNearest extends DesireBase
 	@Override
 	public boolean canContinue()
 	{
-<<<<<<< HEAD
-        if (this.m_target == null)
-            return false;
-
-		if(!this.m_target.isAlive())
-			return false;
-		
-		if(this.getEntityHandle().e(this.m_target) > this.m_minDistSquared)
-			return false;
-		
-		return this.m_lookTicks > 0;
-=======
 		return this.m_target.isAlive() && this.getEntityHandle().e(this.m_target) <= this.m_minDistSquared && this.m_lookTicks > 0;
->>>>>>> 2f469e7d89e191cccc1e9926994f354ad4677b84
 	}
 
 	@Override
@@ -144,12 +123,4 @@ public class DesireLookAtNearest extends DesireBase
 		List<ParameterData> thisData = ReflectionUtil.getParameterDataForClass(this);
 		return thisData.toArray(new ParameterData[thisData.size()]);
 	}
-<<<<<<< HEAD
-
-    public void setLookPossibility(float possibility) {
-        this.m_lookPossibility = possibility;
-    }
 }
-=======
-}
->>>>>>> 2f469e7d89e191cccc1e9926994f354ad4677b84

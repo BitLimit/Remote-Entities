@@ -1,5 +1,6 @@
 package de.kumpelblase2.remoteentities.persistence.serializers;
 
+import org.bukkit.Bukkit;
 import org.bukkit.plugin.Plugin;
 import de.kumpelblase2.remoteentities.*;
 import de.kumpelblase2.remoteentities.api.RemoteEntity;
@@ -28,7 +29,9 @@ public abstract class PreparationSerializer implements IEntitySerializer
 	public RemoteEntity create(EntityData inData)
 	{
 		EntityManager manager = RemoteEntities.getManagerOfPlugin(this.m_plugin.getName());
-		CreateEntityContext context = manager.prepareEntity(inData.type);
+
+        Bukkit.broadcastMessage(inData.toString());
+        CreateEntityContext context = manager.prepareEntity(inData.type);
 		context.withName(inData.name).asPushable(inData.pushable).asStationary(inData.stationary).withID(inData.id);
 		context.withSpeed(inData.speed).withPathfindingRange(inData.pathfindingRange);
 		if(inData.location != null)
